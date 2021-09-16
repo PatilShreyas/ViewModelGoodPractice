@@ -24,6 +24,9 @@ class UserViewModel(
 	private val defaultDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
+	/**
+	 * Hilt injectable constructor. Providing Default [CoroutineDispatcher].
+	 */
 	@Inject
 	constructor(sessionManager: SessionManager, userRepository: UserRepository) : this(
 		sessionManager,
