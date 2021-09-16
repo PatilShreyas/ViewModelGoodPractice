@@ -8,8 +8,8 @@ import dev.shreyaspatil.example.data.repo.InMemoryUserRepository
 import dev.shreyaspatil.example.data.repo.UserRepository
 import javax.inject.Singleton
 
-@InstallIn(SingletonComponent::class)
 @Module
+@InstallIn(SingletonComponent::class)
 interface RepositoryModule {
 	@Singleton
 	@Binds
