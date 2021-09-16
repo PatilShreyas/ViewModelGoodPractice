@@ -4,14 +4,15 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import dev.shreyaspatil.example.data.repo.InMemoryUserRepository
-import dev.shreyaspatil.example.data.repo.UserRepository
+import dev.shreyaspatil.example.session.DefaultSessionManager
+import dev.shreyaspatil.example.session.SessionManager
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-interface RepositoryModule {
-	@Singleton
+interface SessionManagerModule {
+
 	@Binds
-	fun userRepository(repository: InMemoryUserRepository): UserRepository
+	@Singleton
+	fun sessionManager(manager: DefaultSessionManager): SessionManager
 }

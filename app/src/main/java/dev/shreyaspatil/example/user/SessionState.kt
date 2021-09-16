@@ -4,6 +4,6 @@ import dev.shreyaspatil.example.data.model.User
 
 sealed class SessionState {
 	object Loading : SessionState()
-	class UserAvailable(val currentUser: User) : SessionState()
+	data class UserAvailable(val currentUser: User) : SessionState()
 	object UserUnavailable : SessionState()
 }

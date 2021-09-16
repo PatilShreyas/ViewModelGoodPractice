@@ -1,38 +1,37 @@
 package dev.shreyaspatil.example.user
 
-import android.app.Application
-import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.shreyaspatil.example.data.model.User
 import dev.shreyaspatil.example.data.repo.UserRepository
+import dev.shreyaspatil.example.session.SessionManager
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
- * ViewModel inheriting [AndroidViewModel] for accessing framework level dependencies.
+ * UserViewModel inheriting core [ViewModel].
  */
 @HiltViewModel
-class UserViewModel @Inject constructor(
-	application: Application,
-	private val userRepository: UserRepository
-) : AndroidViewModel(application) {
+class UserViewModel(
+	private val sessionManager: SessionManager,
+	private val userRepository: UserRepository,
+	private val defaultDispatcher: CoroutineDispatcher
+) : ViewModel() {
 
 	/**
-	 * A [SharedPreferences] for storing user preferences.
+	 * Hilt injectable constructor. Providing Default [CoroutineDispatcher].
 	 */
-	private val userPreferences = application.getSharedPreferences(
-		UserPreferences.NAME,
-		Context.MODE_PRIVATE
+	@Inject
+	constructor(sessionManager: SessionManager, userRepository: UserRepository) : this(
+		sessionManager,
+		userRepository,
+		Dispatchers.Default
 	)
 
 	/**
@@ -49,7 +48,7 @@ class UserViewModel @Inject constructor(
 	val sessionState: StateFlow<SessionState> = _sessionState
 
 	init {
-		viewModelScope.launch { updateSessionState() }
+		viewModelScope.launch(defaultDispatcher) { updateSessionState() }
 	}
 
 	/**
@@ -60,9 +59,9 @@ class UserViewModel @Inject constructor(
 
 		// Cancel existing ongoing job (if exists).
 		job?.cancel()
-		job = viewModelScope.launch {
+		job = viewModelScope.launch(defaultDispatcher) {
 			val user = userRepository.add(name, email)
-			saveUserSession(user)
+			sessionManager.setUserSession(user)
 			updateSessionState()
 		}
 	}
@@ -72,20 +71,19 @@ class UserViewModel @Inject constructor(
 	 */
 	fun logoutSession() {
 		job?.cancel()
-		job = viewModelScope.launch {
-			clearUserSession()
+		job = viewModelScope.launch(defaultDispatcher) {
+			sessionManager.clear()
 			_sessionState.update { SessionState.UserUnavailable }
 		}
 
 	}
-
 
 	private suspend fun updateSessionState() {
 		// Set current state as loading
 		_sessionState.update { SessionState.Loading }
 
 		// Try retrieving current user and create session accordingly
-		val user = getCurrentUserSession()
+		val user = sessionManager.getCurrentUser()
 
 		val sessionState = if (user != null) {
 			SessionState.UserAvailable(user)
@@ -95,42 +93,5 @@ class UserViewModel @Inject constructor(
 
 		// Update session
 		_sessionState.update { sessionState }
-	}
-
-	private suspend fun saveUserSession(user: User) = withContext(Dispatchers.IO) {
-		userPreferences.edit {
-			putInt(UserPreferences.Keys.ID, user.id)
-			putString(UserPreferences.Keys.NAME, user.name)
-			putString(UserPreferences.Keys.EMAIL, user.email)
-		}
-	}
-
-	private suspend fun clearUserSession() = withContext(Dispatchers.IO) {
-		userPreferences.edit { clear() }
-	}
-
-	private suspend fun getCurrentUserSession(): User? = withContext(Dispatchers.IO) {
-		val id = userPreferences.getInt(UserPreferences.Keys.ID, -1)
-		val name = userPreferences.getString(UserPreferences.Keys.NAME, null)
-		val email = userPreferences.getString(UserPreferences.Keys.EMAIL, null)
-
-		if (id != -1 && name != null && email != null) {
-			User(id, name, email)
-		} else {
-			null
-		}
-	}
-
-	/**
-	 * Object holding user preference key details
-	 */
-	private object UserPreferences {
-		const val NAME = "user_pref"
-
-		object Keys {
-			const val ID = "user_id"
-			const val NAME = "user_name"
-			const val EMAIL = "user_email"
-		}
 	}
 }
