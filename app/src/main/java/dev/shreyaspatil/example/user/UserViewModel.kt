@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.shreyaspatil.example.data.repo.UserRepository
+import dev.shreyaspatil.example.di.DefaultDispatcher
 import dev.shreyaspatil.example.session.SessionManager
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,21 +18,11 @@ import javax.inject.Inject
  * UserViewModel inheriting core [ViewModel].
  */
 @HiltViewModel
-class UserViewModel(
+class UserViewModel @Inject constructor(
 	private val sessionManager: SessionManager,
 	private val userRepository: UserRepository,
-	private val defaultDispatcher: CoroutineDispatcher
+	@DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : ViewModel() {
-
-	/**
-	 * Hilt injectable constructor. Providing Default [CoroutineDispatcher].
-	 */
-	@Inject
-	constructor(sessionManager: SessionManager, userRepository: UserRepository) : this(
-		sessionManager,
-		userRepository,
-		Dispatchers.Default
-	)
 
 	/**
 	 * A cancellable [Job] for setting session.
